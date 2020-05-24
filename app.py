@@ -104,9 +104,16 @@ def determine_columns(gnps_task):
     [Output('upset_plot', 'children')],
     [Input('metadata_columns', 'value'), Input('gnps_task', 'value')],
 )
-def create_plot(gnps_task, metadata_column):
-    url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
-    return [url + ":" + metadata_column]
+def create_plot(metadata_column, gnps_task):
+    metadata_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
+    data_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/".format(gnps_task)
+
+    metadata_df = pd.read_csv(metadata_url, sep="\t")
+    data_df = pd.read_csv(data_url, sep="\t")
+
+    terms_to_consider = list(metadata_df[metadata_column])
+
+    return [str(terms_to_consider)]
 
 # This function will rerun at any 
 # @app.callback(
