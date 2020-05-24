@@ -45,15 +45,25 @@ DASHBOARD = [
             html.Div(id='version', children="Version - Release_1"),
 
             html.Br(),
+            html.H3(children='GNPS Task Selection'),
             dbc.Textarea(className="mb-3", id='gnps_task', placeholder="Enter GNPS Task ID"),
             html.Br(),
             
-            html.H2(children='Metadata Selection'),
+            html.H3(children='Metadata Selection'),
             dcc.Dropdown(
                 id="metadata_columns",
                 options=[{"label" : "Default", "value": "Default"}],
                 multi=False
             ),
+            html.Br(),
+            html.H3(children='Term Selection'),
+            dcc.Dropdown(
+                id="metadata_terms",
+                options=[{"label" : "Default", "value": "Default"}],
+                multi=True
+            ),
+            html.Br(),
+            html.H3(children='Plots'),
             dcc.Loading(
                 id="upset_plot",
                 children=[html.Div([html.Div(id="loading-output-4")])],
@@ -98,22 +108,33 @@ def determine_columns(gnps_task):
     else:
         return [{"label" : "X", "value": "Y"}]
 
+@app.callback([Output('metadata_terms', 'options'), Output('metadata_terms', 'value')],
+              [Input('gnps_task', 'value'), Input('metadata_columns', 'value')])
+def determine_terms(gnps_task, metadata_columns):
+    metadata_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
+    metadata_df = pd.read_csv(metadata_url, sep="\t")
+    terms_to_consider = list(metadata_df[metadata_columns].dropna())
+
+    output_options = []
+    for term in terms_to_consider:
+        output_options.append({"label" : term, "value": term})
+
+    print(output_options)
+
+    return [output_options, terms_to_consider]
 
 # This function will rerun at any time that the selection is updated for column
 @app.callback(
     [Output('upset_plot', 'children')],
-    [Input('metadata_columns', 'value'), Input('gnps_task', 'value')],
+    [Input('metadata_columns', 'value'), Input('metadata_terms', 'value')],
 )
-def create_plot(metadata_column, gnps_task):
-    metadata_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
+def create_plot(metadata_column, metadata_terms):
     data_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/".format(gnps_task)
 
-    metadata_df = pd.read_csv(metadata_url, sep="\t")
     data_df = pd.read_csv(data_url, sep="\t")
 
-    terms_to_consider = list(metadata_df[metadata_column])
 
-    return [str(terms_to_consider)]
+    return [str(metadata_terms)]
 
 # This function will rerun at any 
 # @app.callback(
