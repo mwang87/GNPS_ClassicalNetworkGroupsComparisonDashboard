@@ -9,11 +9,14 @@ from dash.dependencies import Input, Output
 import os
 from zipfile import ZipFile
 import urllib.parse
-from flask import Flask
+from flask import Flask, send_from_directory
 
 import pandas as pd
 import requests
-
+from upsetplot import from_memberships
+from upsetplot import plot
+from matplotlib import pyplot
+import uuid
 
 server = Flask(__name__)
 app = dash.Dash(__name__, server=server, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -98,9 +101,10 @@ def determine_task(pathname):
 def determine_columns(gnps_task):
     # Otherwise, lets use the url
     if gnps_task is not None and len(gnps_task) > 1:
-        url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
+        url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/".format(gnps_task)
         df = pd.read_csv(url, sep="\t")
         acceptable_columns = [column for column in df.columns if "ATTRIBUTE_" in column]
+        acceptable_columns.append("DefaultGroups")
         output_options = []
         for column in acceptable_columns:
             output_options.append({"label" : column, "value": column})
@@ -111,10 +115,16 @@ def determine_columns(gnps_task):
 @app.callback([Output('metadata_terms', 'options'), Output('metadata_terms', 'value')],
               [Input('gnps_task', 'value'), Input('metadata_columns', 'value')])
 def determine_terms(gnps_task, metadata_columns):
-    metadata_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=metadata_merged/".format(gnps_task)
-    metadata_df = pd.read_csv(metadata_url, sep="\t")
-    terms_to_consider = list(metadata_df[metadata_columns].dropna())
+    url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/".format(gnps_task)
+    metadata_df = pd.read_csv(url, sep="\t")
+    merged_terms = list(set(metadata_df[metadata_columns].dropna()))
 
+    terms_to_consider = set()
+    for term in merged_terms:
+        terms_to_consider = terms_to_consider | set(term.split(","))
+
+    terms_to_consider = list(terms_to_consider)
+    
     output_options = []
     for term in terms_to_consider:
         output_options.append({"label" : term, "value": term})
@@ -126,61 +136,33 @@ def determine_terms(gnps_task, metadata_columns):
 # This function will rerun at any time that the selection is updated for column
 @app.callback(
     [Output('upset_plot', 'children')],
-    [Input('metadata_columns', 'value'), Input('metadata_terms', 'value')],
+    [Input('gnps_task', 'value'), Input('metadata_columns', 'value'), Input('metadata_terms', 'value')],
 )
-def create_plot(metadata_column, metadata_terms):
+def create_plot(gnps_task, metadata_column, metadata_terms):
     data_url = "https://gnps.ucsd.edu/ProteoSAFe/DownloadResultFile?task={}&file=clusterinfosummarygroup_attributes_withIDs_withcomponentID/".format(gnps_task)
-
     data_df = pd.read_csv(data_url, sep="\t")
 
+    metadata_terms = set(metadata_terms)
 
-    return [str(metadata_terms)]
+    membership = []
+    for group_value in data_df[metadata_column].to_list():
+        group_splits = set(group_value.split(","))
+        group_splits = list(group_splits & metadata_terms)
+        membership.append(group_splits)
+    
+    upset_data_df = from_memberships(membership)
+    plotting_object = plot(upset_data_df, subset_size="count")
 
-# This function will rerun at any 
-# @app.callback(
-#     [Output('library-mz-histogram', 'children'), Output('library-instrument-histogram', 'children'), Output('library-table', 'children')],
-#     [Input('library-filter', 'value')],
-# )
-# def filter_library_histogram(search_values):
+    uuid_save = str(uuid.uuid4())
+    pyplot.savefig("./output/{}.png".format(uuid_save))
+    
+    return [html.Img(src="/plot/{}".format(uuid_save))]
 
-#     filtered_df = library_df[library_df["library_membership"].isin(search_values)]
-#     fig1 = px.histogram(filtered_df, x="Precursor_MZ", color="library_membership")
-#     fig1.update_layout(
-#         autosize=True,
-#         height=600,
-#     )
+@server.route("/plot/<uuid_save>")
+def download(uuid_save):
+    """Serve a file from the upload directory."""
+    return send_from_directory("./output", uuid_save + ".png")
 
-#     fig2 = px.histogram(filtered_df, x="Instrument")
-#     fig2.update_layout(
-#         autosize=True,
-#         height=600,
-#     )
-
-#     white_list_columns = ["spectrum_id", "library_membership", "Compound_Name", "Ion_Source", "Instrument", "create_time", "Precursor_MZ"]
-#     table_fig = dash_table.DataTable(
-#         columns=[
-#             {"name": i, "id": i, "deletable": True, "selectable": True} for i in white_list_columns
-#         ],
-#         data=filtered_df.to_dict('records'),
-#         editable=True,
-#         filter_action="native",
-#         sort_action="native",
-#         sort_mode="multi",
-#         column_selectable="single",
-#         row_selectable="multi",
-#         row_deletable=True,
-#         selected_columns=[],
-#         selected_rows=[],
-#         page_action="native",
-#         page_current= 0,
-#         page_size= 10,
-#     )
-
-#     import gc
-#     del filtered_df
-#     gc.collect()
-
-#     return [dcc.Graph(figure=fig1), dcc.Graph(figure=fig2), table_fig]
 
 if __name__ == "__main__":
     app.run_server(debug=True, port=5000, host="0.0.0.0")
