@@ -1,0 +1,23 @@
+version: '3'
+services:
+  gnpsclassicalgroups-dash:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gnpsclassicalgroups-dash
+    volumes:
+      - ./output:/app/output:rw
+      - ./logs:/app/logs:rw
+    ports:
+    - "5848:5000"
+    networks:
+      - default
+      - nginx-net
+    restart: unless-stopped
+    command: /app/run_server.sh
+
+
+networks:
+  nginx-net:
+    external:
+      name: nginx-net
