@@ -151,7 +151,7 @@ def create_plot(gnps_task, metadata_column, metadata_terms):
         membership.append(group_splits)
     
     upset_data_df = from_memberships(membership)
-    plotting_object = plot(upset_data_df, subset_size="count")
+    plotting_object = plot(upset_data_df, subset_size="count", sort_by="cardinality", orientation="horizontal")
 
     uuid_save = str(uuid.uuid4())
     pyplot.savefig("./output/{}.png".format(uuid_save))
