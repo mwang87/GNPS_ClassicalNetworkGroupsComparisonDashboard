@@ -129,8 +129,6 @@ def determine_terms(gnps_task, metadata_columns):
     for term in terms_to_consider:
         output_options.append({"label" : term, "value": term})
 
-    print(output_options)
-
     return [output_options, terms_to_consider]
 
 # This function will rerun at any time that the selection is updated for column
@@ -151,6 +149,7 @@ def create_plot(gnps_task, metadata_column, metadata_terms):
         membership.append(group_splits)
     
     upset_data_df = from_memberships(membership)
+
     plotting_object = plot(upset_data_df, subset_size="count", sort_by="cardinality", orientation="horizontal")
 
     uuid_save = str(uuid.uuid4())
