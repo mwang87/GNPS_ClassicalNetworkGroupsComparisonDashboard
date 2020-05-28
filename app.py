@@ -96,7 +96,7 @@ def determine_task(pathname):
     else:
         return dash.no_update
 
-@app.callback(Output('metadata_columns', 'options'),
+@app.callback([Output('metadata_columns', 'options'), Output('metadata_columns', 'value')],
               [Input('gnps_task', 'value')])
 def determine_columns(gnps_task):
     # Otherwise, lets use the url
@@ -108,9 +108,9 @@ def determine_columns(gnps_task):
         output_options = []
         for column in acceptable_columns:
             output_options.append({"label" : column, "value": column})
-        return output_options
+        return [output_options, acceptable_columns[0]]
     else:
-        return [{"label" : "X", "value": "Y"}]
+        return [{"label" : "X", "value": "Y"}, dash.no_update]
 
 @app.callback([Output('metadata_terms', 'options'), Output('metadata_terms', 'value')],
               [Input('gnps_task', 'value'), Input('metadata_columns', 'value')])
