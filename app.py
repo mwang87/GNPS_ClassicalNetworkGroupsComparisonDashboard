@@ -39,6 +39,20 @@ NAVBAR = dbc.Navbar(
     sticky="top",
 )
 
+CONTRIBUTORS_CARD = [
+    dbc.CardHeader(html.H5("Contributors")),
+    dbc.CardBody(
+        [
+            html.Div([
+                "Mingxun Wang PhD - UC San Diego",
+                html.Br(),
+                "Vanessa Phelan PhD - CU Anschutz"
+                ]
+            )
+        ]
+    )
+]
+
 DASHBOARD = [
     dbc.CardHeader(html.H5("GNPS Classical Networking Group Comparison Dashboard")),
     dbc.CardBody(
@@ -66,19 +80,26 @@ DASHBOARD = [
                 multi=True
             ),
             html.Br(),
-            html.H3(children='Plots'),
+            html.H3(children='Upset Plot'),
             dcc.Loading(
                 id="upset_plot",
                 children=[html.Div([html.Div(id="loading-output-4")])],
                 type="default",
-            )
+            ),
         ]
     )
 ]
 
+
+
 BODY = dbc.Container(
     [
-        dbc.Row([dbc.Col(dbc.Card(DASHBOARD)),], style={"marginTop": 30}),
+        dbc.Row([
+            dbc.Col(dbc.Card(DASHBOARD)),
+        ], style={"marginTop": 30}),
+        dbc.Row([
+            dbc.Col(dbc.Card(CONTRIBUTORS_CARD)),
+        ], style={"marginTop": 30}),
     ],
     className="mt-12",
 )
