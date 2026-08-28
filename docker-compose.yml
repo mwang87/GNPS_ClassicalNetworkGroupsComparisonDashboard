@@ -1,4 +1,11 @@
 version: '3'
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   gnpsclassicalgroups-dash:
     build:
@@ -14,6 +21,7 @@ services:
       - default
       - nginx-net
     restart: unless-stopped
+    logging: *default-logging
     command: /app/run_server.sh
     environment:
       VIRTUAL_HOST: classicalupset.gnps2.org
